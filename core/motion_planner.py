@@ -29,9 +29,10 @@ class MotionPlanner:
             component = MOTION_COMPONENTS.get(visual.intent)
             if not component:
                 continue
+            data = visual.data.model_dump() if visual.data is not None else {}
             payload = {
                 "component": component,
-                "data": visual.data,
+                "data": data,
                 "duration": visual.duration,
                 "preset": preset,
                 "component_version": "1.3.2",
@@ -41,8 +42,7 @@ class MotionPlanner:
             output = project_dir / "generated" / "motion" / f"{item_id}.mp4"
             items.append(MotionItem(
                 id=item_id, visual_id=visual.id, component=component,
-                start=visual.start, duration=visual.duration, data=visual.data, preset=preset,
+                start=visual.start, duration=visual.duration, data=data, preset=preset,
                 output_path=str(output), cache_key=cache_key,
             ))
         return MotionPlan(project_id=visual_plan.project_id, required=bool(items), items=items)
-

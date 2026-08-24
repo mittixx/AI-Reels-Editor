@@ -20,6 +20,7 @@ from models.artifacts import (
     Transcript,
     TranscriptSegment,
     VideoInfo,
+    VisualData,
     VisualItem,
     VisualPlan,
 )
@@ -71,6 +72,40 @@ def test_motion_plan_only_when_required(tmp_path: Path) -> None:
     result = MotionPlanner().plan(tmp_path, plan)
     assert result.required
     assert result.items[0].component == "AnimatedStat"
+
+
+def test_motion_plan_converts_visual_data_to_dict(tmp_path: Path) -> None:
+    plan = VisualPlan(
+        project_id="p",
+        output_duration=4,
+        profile="expert",
+        items=[
+            VisualItem(
+                id="m",
+                intent="animated_stat",
+                start=0,
+                duration=3,
+                data=VisualData(value=42, label="Views"),
+            )
+        ],
+    )
+
+    result = MotionPlanner().plan(tmp_path, plan)
+
+    assert result.items[0].data == {"value": 42, "path": None, "label": "Views"}
+
+
+def test_motion_plan_uses_empty_dict_for_missing_visual_data(tmp_path: Path) -> None:
+    plan = VisualPlan(
+        project_id="p",
+        output_duration=4,
+        profile="expert",
+        items=[VisualItem(id="m", intent="animated_stat", start=0, duration=3)],
+    )
+
+    result = MotionPlanner().plan(tmp_path, plan)
+
+    assert result.items[0].data == {}
 
 
 def test_motion_component_library_complete() -> None:
