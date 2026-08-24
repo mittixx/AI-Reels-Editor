@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.3",
+  "project_version": "1.3.2",
+  "default_mode": "fast",
+  "default_profile": "expert",
+  "target": {
+    "width": 1080,
+    "height": 1920,
+    "video_codec": "libx264",
+    "audio_codec": "aac",
+    "pixel_format": "yuv420p"
+  },
+  "limits": {
+    "max_source_gb": 20,
+    "max_ai_calls_fast": 3,
+    "max_ai_calls_detail": 6,
+    "external_timeout_seconds": 1800,
+    "max_render_attempts": 2
+  },
+  "versions": {
+    "prompt": "1.3.4",
+    "pipeline": "1.3.4",
+    "hyperframes_template": "1.3.4",
+    "motion_components": "1.3.4"
+  }
+}

@@ -1,0 +1,384 @@
+{
+  "$defs": {
+    "ArtifactRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "artifact_type": {
+          "title": "Artifact Type",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        },
+        "input_hash": {
+          "title": "Input Hash",
+          "type": "string"
+        },
+        "created_by_stage": {
+          "title": "Created By Stage",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "valid": {
+          "default": true,
+          "title": "Valid",
+          "type": "boolean"
+        },
+        "metadata": {
+          "additionalProperties": true,
+          "title": "Metadata",
+          "type": "object"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "artifact_type",
+        "path",
+        "sha256",
+        "input_hash",
+        "created_by_stage"
+      ],
+      "title": "ArtifactRecord",
+      "type": "object"
+    },
+    "MediaAsset": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "type": {
+          "title": "Type",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "user",
+            "generated",
+            "derived",
+            "cached"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "duration": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duration"
+        },
+        "metadata": {
+          "additionalProperties": true,
+          "title": "Metadata",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "path",
+        "sha256",
+        "source"
+      ],
+      "title": "MediaAsset",
+      "type": "object"
+    },
+    "Mode": {
+      "enum": [
+        "fast",
+        "detail"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "Profile": {
+      "enum": [
+        "expert",
+        "selling",
+        "lifestyle"
+      ],
+      "title": "Profile",
+      "type": "string"
+    },
+    "Stage": {
+      "enum": [
+        "source_analysis",
+        "audio_analysis",
+        "transcription",
+        "speech_analysis",
+        "edit_plan",
+        "visual_plan",
+        "motion_plan",
+        "media_manifest",
+        "render_plan",
+        "motion_render",
+        "master_render",
+        "qc",
+        "export"
+      ],
+      "title": "Stage",
+      "type": "string"
+    },
+    "StageRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/StageStatus",
+          "default": "pending"
+        },
+        "input_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input Hash"
+        },
+        "output_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Hash"
+        },
+        "attempts": {
+          "default": 0,
+          "title": "Attempts",
+          "type": "integer"
+        },
+        "started_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Started At"
+        },
+        "completed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Completed At"
+        },
+        "error_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error Code"
+        },
+        "error_message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error Message"
+        }
+      },
+      "title": "StageRecord",
+      "type": "object"
+    },
+    "StageStatus": {
+      "enum": [
+        "pending",
+        "in_progress",
+        "completed",
+        "failed",
+        "skipped",
+        "cancelled"
+      ],
+      "title": "StageStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "1.3",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "project_id": {
+      "title": "Project Id",
+      "type": "string"
+    },
+    "source_path": {
+      "title": "Source Path",
+      "type": "string"
+    },
+    "source_hash": {
+      "title": "Source Hash",
+      "type": "string"
+    },
+    "mode": {
+      "$ref": "#/$defs/Mode"
+    },
+    "profile": {
+      "$ref": "#/$defs/Profile"
+    },
+    "current_stage": {
+      "$ref": "#/$defs/Stage",
+      "default": "source_analysis"
+    },
+    "status": {
+      "default": "created",
+      "title": "Status",
+      "type": "string"
+    },
+    "stages": {
+      "additionalProperties": {
+        "$ref": "#/$defs/StageRecord"
+      },
+      "title": "Stages",
+      "type": "object"
+    },
+    "artifacts": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ArtifactRecord"
+      },
+      "title": "Artifacts",
+      "type": "object"
+    },
+    "last_action": {
+      "default": "created",
+      "title": "Last Action",
+      "type": "string"
+    },
+    "pending_tasks": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Pending Tasks",
+      "type": "array"
+    },
+    "export_version": {
+      "default": 0,
+      "title": "Export Version",
+      "type": "integer"
+    },
+    "cache": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Cache",
+      "type": "object"
+    },
+    "stage_instructions": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "title": "Stage Instructions",
+      "type": "object"
+    },
+    "user_assets": {
+      "items": {
+        "$ref": "#/$defs/MediaAsset"
+      },
+      "title": "User Assets",
+      "type": "array"
+    },
+    "last_error": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Last Error"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    },
+    "cancelled": {
+      "default": false,
+      "title": "Cancelled",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "project_id",
+    "source_path",
+    "source_hash",
+    "mode",
+    "profile",
+    "stages"
+  ],
+  "title": "ProjectState",
+  "type": "object"
+}

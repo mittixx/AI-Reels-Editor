@@ -1,0 +1,9 @@
+{
+  "id": "selling",
+  "broll_density": "high",
+  "hook_style": "result_first",
+  "accent_color": "#FFCB45",
+  "background": "#111115",
+  "transition": "dynamic_clean",
+  "subtitle_preset": "bold"
+}

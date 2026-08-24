@@ -1,0 +1,6 @@
+{
+  "schema_version": "1.3",
+  "minimal": {"font": "Arial", "font_size": 62, "max_lines": 2, "max_chars": 34, "bottom_margin": 280, "text_color": "#FFFFFF", "highlight_color": "#B8FF5A"},
+  "bold": {"font": "Arial", "font_size": 68, "max_lines": 2, "max_chars": 30, "bottom_margin": 290, "text_color": "#FFFFFF", "highlight_color": "#FFCB45"},
+  "soft": {"font": "Arial", "font_size": 58, "max_lines": 2, "max_chars": 36, "bottom_margin": 270, "text_color": "#FFF9F5", "highlight_color": "#F4B7C9"}
+}

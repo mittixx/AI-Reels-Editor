@@ -1,0 +1,122 @@
+{
+  "$defs": {
+    "Command": {
+      "enum": [
+        "CREATE_REEL",
+        "STATUS",
+        "RESUME",
+        "REVISE",
+        "QC",
+        "EXPORT",
+        "PACKAGE_CAPCUT",
+        "LIST_PROJECTS",
+        "PROJECT_INFO",
+        "CANCEL_SAFE",
+        "DOCTOR",
+        "IMPORT_ASSET"
+      ],
+      "title": "Command",
+      "type": "string"
+    },
+    "Mode": {
+      "enum": [
+        "fast",
+        "detail"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "Profile": {
+      "enum": [
+        "expert",
+        "selling",
+        "lifestyle"
+      ],
+      "title": "Profile",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "request_id": {
+      "title": "Request Id",
+      "type": "string"
+    },
+    "command": {
+      "$ref": "#/$defs/Command"
+    },
+    "project_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Project Id"
+    },
+    "source": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source"
+    },
+    "mode": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Mode"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "profile": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Profile"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "instructions": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Instructions"
+    },
+    "parameters": {
+      "additionalProperties": true,
+      "title": "Parameters",
+      "type": "object"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "command"
+  ],
+  "title": "ControlRequest",
+  "type": "object"
+}

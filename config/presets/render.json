@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.3",
+  "width": 1080,
+  "height": 1920,
+  "quality": "high",
+  "crf": 18,
+  "audio_bitrate": "192k",
+  "blackframe_threshold": 98,
+  "blackframe_min_duration": 0.5,
+  "duration_tolerance_seconds": 0.35
+}

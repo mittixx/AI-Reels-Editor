@@ -1,0 +1,15 @@
+{
+  "name": "ai-reels-editor-hyperframes",
+  "private": true,
+  "version": "1.3.4",
+  "engines": {"node": ">=22"},
+  "dependencies": {
+    "gsap": "3.14.2",
+    "hyperframes": "0.8.12"
+  },
+  "scripts": {
+    "doctor": "hyperframes doctor --json",
+    "lint:template": "hyperframes lint templates/base --json",
+    "check:template": "hyperframes check templates/base --json"
+  }
+}

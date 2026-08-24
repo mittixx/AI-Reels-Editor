@@ -1,0 +1,5 @@
+pydantic==2.13.4
+python-dotenv==1.2.3
+openai==3.3.1
+faster-whisper==1.2.1
+tenacity==9.1.2

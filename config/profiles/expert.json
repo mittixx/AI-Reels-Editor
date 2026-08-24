@@ -1,0 +1,9 @@
+{
+  "id": "expert",
+  "broll_density": "moderate",
+  "hook_style": "clear",
+  "accent_color": "#B8FF5A",
+  "background": "#0B0B0D",
+  "transition": "clean",
+  "subtitle_preset": "minimal"
+}
