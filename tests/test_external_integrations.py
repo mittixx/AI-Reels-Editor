@@ -134,6 +134,17 @@ def test_motion_canvas_typecheck_or_skip() -> None:
 
 
 @pytest.mark.external
+def test_motion_canvas_preview_startup_or_skip() -> None:
+    root = Path(__file__).resolve().parents[1] / "node_tools" / "motion_canvas"
+    node = shutil.which("node")
+    if node is None or not (root / "node_modules" / "vite").is_dir():
+        pytest.skip("Motion Canvas node dependencies unavailable")
+    result = run_process([node, "scripts/check_serve.mjs"], cwd=root, timeout=30, check=False)
+    assert result.returncode == 0, result.stderr
+    assert "Motion Canvas preview check passed" in result.stdout
+
+
+@pytest.mark.external
 def test_motion_canvas_invalid_input_fails_before_browser(tmp_path: Path) -> None:
     root = Path(__file__).resolve().parents[1] / "node_tools" / "motion_canvas"
     node = shutil.which("node")

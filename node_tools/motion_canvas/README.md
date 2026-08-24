@@ -9,3 +9,6 @@ Python-адаптером. Каждый job работает в отдельно
 Wrapper использует headless Chromium, потому что официальный Motion Canvas 3.17.2 не предоставляет
 стабильную документированную headless CLI-команду. После `npm ci` выполните локальную команду
 `.\node_modules\.bin\playwright.cmd install chromium` один раз.
+
+`npm run check:serve` поднимает preview-сервер на loopback-интерфейсе, проверяет, что он получил
+TCP-порт, и сразу его останавливает. Эту проверку нужно выполнить после `npm ci` перед первым render.

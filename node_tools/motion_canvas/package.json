@@ -6,6 +6,7 @@
   "engines": {"node": ">=22"},
   "scripts": {
     "serve": "vite --host 127.0.0.1",
+    "check:serve": "node scripts/check_serve.mjs",
     "typecheck": "tsc --noEmit",
     "render:asset": "node scripts/render.mjs"
   },
