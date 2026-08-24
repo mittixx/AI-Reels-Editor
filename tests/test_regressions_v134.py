@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import types
 from pathlib import Path
 
 import pytest
@@ -13,7 +14,7 @@ from core.render_router import RenderRouter
 from integrations.ffmpeg import FFmpegAdapter
 from integrations.hyperframes import HyperFramesIntegration
 from integrations.motion_canvas import MotionCanvasIntegration
-from integrations.process import run_process
+from integrations.process import ProcessResult, run_process
 from models.artifacts import (
     EditPlan,
     MediaAsset,
@@ -56,6 +57,41 @@ def test_windows_cmd_subprocess_launches_for_hyperframes_and_motion(tmp_path: Pa
     item = MotionItem(id="x", visual_id="v", component="Callout", start=0, duration=1, data={"text": "x"}, preset="default", output_path=str(tmp_path / "out.mp4"), cache_key="x")
     job = MotionCanvasIntegration(npm_bin=str(script)).render(node_project, item, tmp_path / "jobs")
     assert job.process.returncode == 0
+
+
+def test_motion_canvas_resolves_windows_npm_from_path(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    npm_cmd = r"C:\Program Files\nodejs\npm.CMD"
+    monkeypatch.setattr("integrations.motion_canvas.os", types.SimpleNamespace(name="nt"))
+    monkeypatch.setattr(
+        "integrations.motion_canvas.shutil.which",
+        lambda command: npm_cmd if command == "npm.cmd" else None,
+    )
+    received: list[str] = []
+    monkeypatch.setattr(
+        "integrations.motion_canvas.run_process",
+        lambda args, **kwargs: (
+            received.extend(str(arg) for arg in args)
+            or ProcessResult(tuple(str(arg) for arg in args), 0, "", "")
+        ),
+    )
+    node_project = tmp_path / "motion"
+    node_project.mkdir()
+    (node_project / "package.json").write_text("{}", encoding="utf-8")
+    item = MotionItem(
+        id="x",
+        visual_id="v",
+        component="Callout",
+        start=0,
+        duration=1,
+        data={},
+        preset="default",
+        output_path=str(tmp_path / "out.mp4"),
+        cache_key="x",
+    )
+
+    MotionCanvasIntegration(npm_bin="npm").render(node_project, item, tmp_path / "jobs")
+
+    assert received[0] == npm_cmd
 
 
 def test_corrupt_image_is_rejected_before_render(tmp_path: Path) -> None:

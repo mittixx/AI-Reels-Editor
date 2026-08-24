@@ -40,11 +40,11 @@ class MotionCanvasIntegration:
         self.stability_interval = stability_interval
 
     def available(self, node_project: Path) -> bool:
-        executable = Path(self.npm_bin)
-        return (executable.is_file() or shutil.which(self.npm_bin) is not None) and (node_project / "package.json").is_file()
+        return self._npm_executable() is not None and (node_project / "package.json").is_file()
 
     def render(self, node_project: Path, item: MotionItem, job_dir: Path) -> MotionRenderJob:
-        if not self.available(node_project):
+        npm_executable = self._npm_executable()
+        if npm_executable is None or not (node_project / "package.json").is_file():
             raise DependencyError("Motion Canvas project/npm РЅРµРґРѕСЃС‚СѓРїРЅС‹")
         job_dir.mkdir(parents=True, exist_ok=True)
         safe_item_id = re.sub(r"[^A-Za-z0-9_-]", "_", item.id).strip("_") or "motion"
@@ -62,7 +62,7 @@ class MotionCanvasIntegration:
         expected_output.parent.mkdir(parents=True, exist_ok=True)
         started_at_ns = time.time_ns()
         process = run_process([
-            self.npm_bin,
+            npm_executable,
             "run",
             "render:asset",
             "--",
@@ -74,6 +74,18 @@ class MotionCanvasIntegration:
             job_id,
         ], cwd=node_project, timeout=self.timeout, check=False)
         return MotionRenderJob(process, job_id, expected_output, started_at_ns, input_path)
+
+    def _npm_executable(self) -> str | None:
+        """Resolve npm through PATH and return the actual executable path."""
+
+        candidates = [self.npm_bin]
+        if os.name == "nt":
+            candidates.extend(["npm.cmd", "npm"])
+        for candidate in dict.fromkeys(candidates):
+            executable = shutil.which(candidate)
+            if executable is not None:
+                return executable
+        return None
 
     def validate_result(self, job: MotionRenderJob, output: Path) -> dict:
         result = job.process
