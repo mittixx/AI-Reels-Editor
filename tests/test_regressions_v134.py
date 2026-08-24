@@ -14,6 +14,7 @@ from core.render_router import RenderRouter
 from integrations.ffmpeg import FFmpegAdapter
 from integrations.hyperframes import HyperFramesIntegration
 from integrations.motion_canvas import MotionCanvasIntegration
+from integrations import process as process_integration
 from integrations.process import ProcessResult, run_process
 from models.artifacts import (
     EditPlan,
@@ -92,6 +93,29 @@ def test_motion_canvas_resolves_windows_npm_from_path(monkeypatch: pytest.Monkey
     MotionCanvasIntegration(npm_bin="npm").render(node_project, item, tmp_path / "jobs")
 
     assert received[0] == npm_cmd
+
+
+def test_windows_npm_cmd_path_is_passed_without_manual_quotes(monkeypatch: pytest.MonkeyPatch) -> None:
+    npm_cmd = r"C:\Program Files\nodejs\npm.CMD"
+    captured: list[str] = []
+    monkeypatch.setattr(
+        process_integration,
+        "os",
+        types.SimpleNamespace(name="nt", environ={"ComSpec": "cmd.exe"}),
+    )
+    monkeypatch.setattr(
+        process_integration.subprocess,
+        "run",
+        lambda args, **kwargs: (
+            captured.extend(str(arg) for arg in args)
+            or types.SimpleNamespace(returncode=0, stdout="", stderr="")
+        ),
+    )
+
+    process_integration.run_process([npm_cmd, "run", "render:asset"], check=False)
+
+    assert captured == ["cmd.exe", "/d", "/s", "/c", "call", npm_cmd, "run", "render:asset"]
+    assert not captured[5].startswith('"')
 
 
 def test_corrupt_image_is_rejected_before_render(tmp_path: Path) -> None:

@@ -30,8 +30,7 @@ def run_process(
     # cmd/bat files are not CreateProcess executables. Use a narrow cmd.exe wrapper
     # only for that file type; all ordinary processes remain shell-free.
     if os.name == "nt" and Path(safe_args[0]).suffix.lower() in {".cmd", ".bat"}:
-        command_line = subprocess.list2cmdline(safe_args)
-        launch_args = [os.environ.get("ComSpec", "cmd.exe"), "/d", "/s", "/c", command_line]
+        launch_args = [os.environ.get("ComSpec", "cmd.exe"), "/d", "/s", "/c", "call", *safe_args]
     try:
         result = subprocess.run(
             launch_args,
