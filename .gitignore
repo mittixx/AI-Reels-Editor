@@ -19,3 +19,16 @@ temp/*
 logs/*
 *.log
 *.zip
+# Terra
+.terra/
+
+# Motion Canvas temporary files
+node_tools/motion_canvas/.render-jobs/
+node_tools/motion_canvas/output/
+node_tools/motion_canvas/job_test.json
+node_tools/motion_canvas/scripts/*.backup
+node_tools/motion_canvas/scripts/*.backup2
+node_tools/motion_canvas/scripts/*.before_render_fix
+
+# Test videos
+test_videos/

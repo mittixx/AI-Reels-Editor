@@ -184,21 +184,93 @@ try {
   process.stderr.write('MOTION_CANVAS_HTTP_PROBE_DONE\n');
   browser = await chromium.launch({headless: true});
   const page = await browser.newPage({viewport: {width: 1440, height: 1000}});
-  await page.goto(`http://127.0.0.1:${port}`, {waitUntil: 'networkidle', timeout: 90000});
-  const settings = page.getByRole('button', {name: /video settings/i}).or(page.locator('[title*="Video Settings" i]'));
-  if (await settings.count()) await settings.first().click();
-  const render = page.getByRole('button', {name: /^render$/i}).or(page.getByText('RENDER', {exact: true}));
-  const renderStarted = Date.now();
-  await render.last().click({timeout: 30000});
-  const findMp4 = async dir => {
-    const found = [];
-    for (const item of await readdir(dir, {withFileTypes: true}).catch(() => [])) {
-      const full = path.join(dir, item.name);
-      if (item.isDirectory()) found.push(...await findMp4(full)); else if (item.name.endsWith('.mp4')) found.push(full);
-    }
-    return found;
+await page.goto(`http://127.0.0.1:${port}`, {waitUntil: 'networkidle', timeout: 90000});
+
+const settings = page
+  .getByRole('button')
+  .filter({hasText: /video settings|настройки видео/i});
+
+// Force MP4 export
+// Force MP4 export in Motion Canvas UI
+// DEBUG MOTION CANVAS SELECTS
+
+const selects = page.locator('select');
+
+const selectCount = await selects.count();
+
+console.log(
+  'MOTION_CANVAS_SELECT_COUNT',
+  selectCount
+);
+
+for (let i = 0; i < selectCount; i++) {
+
+  const options = await selects
+    .nth(i)
+    .locator('option')
+    .allTextContents();
+
+  console.log(
+    'SELECT',
+    i,
+    options
+  );
+}
+let renderButton = page
+  .locator('button')
+  .filter({
+    hasText: /render|рендер/i
+  })
+  .last();
+
+if (await renderButton.count() === 0) {
+  const allButtons = await page.locator('button').allTextContents();
+
+  process.stderr.write(
+    "MOTION_CANVAS_RENDER_BUTTON_DEBUG=" +
+    JSON.stringify(allButtons) +
+    "\n"
+  );
+
+  throw new Error(
+    "Motion Canvas Render button not found"
+  );
+}
+
+await renderButton.click({
+  timeout: 30000
+});
+
+await page.waitForTimeout(5000);
+
+const browserErrors = await page.evaluate(() => {
+  return {
+    body: document.body.innerText,
+    title: document.title
   };
-  const deadline = Date.now() + 15 * 60 * 1000;
+});
+
+process.stderr.write(
+  "MOTION_CANVAS_AFTER_RENDER_DEBUG=" +
+  JSON.stringify(browserErrors) +
+  "\n"
+);
+const findMp4 = async dir => {
+  const found = [];
+
+  for (const item of await readdir(dir, {withFileTypes: true}).catch(() => [])) {
+    const full = path.join(dir, item.name);
+
+    if (item.isDirectory()) {
+      found.push(...await findMp4(full));
+    } else if (item.name.toLowerCase().endsWith('.mp4')) {
+      found.push(full);
+    }
+  }
+
+  return found;
+};
+      const deadline = Date.now() + 15 * 60 * 1000;
   let rendered;
   const waitForStableFile = async candidate => {
     let previous;
@@ -254,3 +326,5 @@ try {
   if (!failed) await rm(runtimeRoot, {recursive: true, force: true});
   else process.stderr.write(`MOTION_CANVAS_JOB_PRESERVED ${runtimeRoot}\n`);
 }
+
+
