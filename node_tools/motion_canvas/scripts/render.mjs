@@ -62,7 +62,8 @@ const jobLayout = {
   has_motion_input: runtimeFiles.includes('public/motion_input.json'),
   vite_root: runtimeRoot,
 };
-process.stderr.write(`MOTION_CANVAS_JOB_LAYOUT_DEBUG ${JSON.stringify(jobLayout)}\n`);
+const jobLayoutDebug = `MOTION_CANVAS_JOB_LAYOUT_DEBUG ${JSON.stringify(jobLayout)}`;
+process.stderr.write(`${jobLayoutDebug}\n`);
 const port = 9200 + Math.floor(Math.random() * 500);
 const launch = buildNpmServeLaunchSpec({runtimeRoot, port});
 const expectedUrl = `http://127.0.0.1:${port}`;
@@ -98,6 +99,9 @@ server.once('exit', code => { serverExitCode = code; });
 const waitForPreview = async () => {
   const deadline = Date.now() + 60000;
   let lastProbeError = '';
+  let lastProbeStatus = null;
+  let lastProbeBody = '';
+  let probeReported = false;
   while (Date.now() < deadline) {
     if (serverLaunchError) throw new Error(`Motion Canvas server launch failed: ${serverLaunchError.message}`);
     if (serverExitCode !== undefined) {
@@ -105,6 +109,15 @@ const waitForPreview = async () => {
     }
     try {
       const response = await fetch(expectedUrl, {signal: AbortSignal.timeout(1000)});
+      const body = (await response.text()).slice(0, 500);
+      lastProbeStatus = response.status;
+      lastProbeBody = body;
+      if (!probeReported) {
+        probeReported = true;
+        process.stderr.write(
+          `MOTION_CANVAS_PREVIEW_HTTP_DEBUG ${JSON.stringify({url: expectedUrl, status: response.status, response_text: body})}\n`,
+        );
+      }
       if (response.ok) {
         process.stderr.write(`MOTION_CANVAS_PREVIEW_DEBUG preview_ready=true status=${response.status}\n`);
         return;
@@ -118,7 +131,9 @@ const waitForPreview = async () => {
   throw new Error(
     `Motion Canvas preview timeout; port=${port}; expected_url=${expectedUrl}; ` +
     `launch=${launchDebug}; stdout_received=${stdoutReceived}; stderr_received=${stderrReceived}; ` +
-    `last_probe_error=${lastProbeError}; stdout=${serverStdout.slice(-1000)}; stderr=${serverStderr.slice(-1000)}`,
+    `last_probe_error=${lastProbeError}; last_probe_status=${lastProbeStatus}; ` +
+    `last_probe_response_text=${JSON.stringify(lastProbeBody)}; ` +
+    `stdout=${serverStdout.slice(-250)}; stderr=${serverStderr.slice(-250)}; ${jobLayoutDebug}`,
   );
 };
 const started = waitForPreview();
