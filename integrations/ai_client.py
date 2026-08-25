@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, TypeVar
@@ -12,6 +13,7 @@ from core.errors import AIUnavailableError, DependencyError
 from models.artifacts import EditPlan, SpeechAnalysis, VisualPlan
 
 T = TypeVar("T", bound=BaseModel)
+LOGGER = logging.getLogger(__name__)
 
 
 class BaseAIProvider(ABC):
@@ -46,6 +48,8 @@ class OpenAIProvider(BaseAIProvider):
         )
 
         self.model = config.openai_model
+        self.api_key_configured = bool(config.openai_api_key)
+        self.endpoint = f"{str(self.client.base_url).rstrip('/')}/responses"
 
 
     def generate(
@@ -88,12 +92,36 @@ class OpenAIProvider(BaseAIProvider):
             raise
 
         except Exception as exc:
-            print("OPENAI ERROR DETAILS:")
-            print(repr(exc))
+            LOGGER.error(
+                "OPENAI_DIAGNOSTIC %s",
+                json.dumps(self._diagnostic_payload(purpose, exc), ensure_ascii=False, default=str),
+            )
 
             raise AIUnavailableError(
                 f"OpenAI request для {purpose} не выполнен: {type(exc).__name__}"
             ) from exc
+
+    def _diagnostic_payload(self, purpose: str, exc: Exception) -> dict[str, Any]:
+        response = getattr(exc, "response", None)
+        status = getattr(exc, "status_code", None)
+        if status is None and response is not None:
+            status = getattr(response, "status_code", None)
+        body = getattr(exc, "body", None)
+        if body is None and response is not None:
+            try:
+                body = response.text
+            except Exception:  # pragma: no cover - defensive SDK compatibility
+                body = None
+        return {
+            "purpose": purpose,
+            "api_key_configured": self.api_key_configured,
+            "model": self.model,
+            "endpoint": self.endpoint,
+            "http_status": status,
+            "error_type": type(exc).__name__,
+            "error_message": str(exc),
+            "error_body": body,
+        }
 
 
 
