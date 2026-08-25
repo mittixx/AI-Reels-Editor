@@ -38,3 +38,12 @@ test('Motion Canvas template never requests public motion input path', async () 
   assert.equal(sources.join('\n').includes('/public/motion_input.json'), false);
   assert.equal(sources.join('\n').includes("'/motion_input.json'"), true);
 });
+
+test('Vite template creates Motion Canvas plugins with direct default imports', async () => {
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const config = await readFile(path.join(root, 'vite.config.ts'), 'utf8');
+  assert.equal(config.includes('unwrapDefault'), false);
+  assert.match(config, /import motionCanvas from '@motion-canvas\/vite-plugin';/);
+  assert.match(config, /import ffmpeg from '@motion-canvas\/ffmpeg';/);
+  assert.match(config, /plugins: \[motionCanvas\(\), ffmpeg\(\)\]/);
+});
