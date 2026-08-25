@@ -56,7 +56,7 @@ process.stderr.write(`MOTION_CANVAS_PREVIEW_DEBUG spawn_command=${launch.command
 process.stderr.write(`MOTION_CANVAS_PREVIEW_DEBUG spawn_args=${JSON.stringify(launch.args)}\n`);
 process.stderr.write(`MOTION_CANVAS_PREVIEW_DEBUG port=${port} expected_url=${expectedUrl}\n`);
 process.stderr.write(`PREVIEW_URL_DEBUG ${JSON.stringify({expected_url: expectedUrl, port})}\n`);
-const server = spawn(launch.command, launch.args, {cwd: root, stdio: ['ignore', 'pipe', 'pipe'], shell: false});
+const server = spawn(launch.command, launch.args, {cwd: root, env: {...process.env, MOTION_CANVAS_VITE_ROOT: runtimeRoot}, stdio: ['ignore', 'pipe', 'pipe'], shell: false});
 process.stderr.write(`SERVER_PROCESS_PID ${server.pid ?? 'unavailable'}\n`);
 let serverStdout = '';
 let serverStderr = '';
