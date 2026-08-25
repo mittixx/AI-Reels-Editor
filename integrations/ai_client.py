@@ -60,6 +60,7 @@ class OpenAIProvider(BaseAIProvider):
         output_model: type[T],
     ) -> T:
 
+        request_stage = "responses.parse"
         try:
             response = self.client.responses.parse(
                 model=self.model,
@@ -86,6 +87,7 @@ class OpenAIProvider(BaseAIProvider):
                     "AI не вернул структурированный результат"
                 )
 
+            request_stage = "output_model.model_validate"
             return output_model.model_validate(parsed)
 
         except AIUnavailableError:
@@ -94,14 +96,24 @@ class OpenAIProvider(BaseAIProvider):
         except Exception as exc:
             LOGGER.error(
                 "OPENAI_DIAGNOSTIC %s",
-                json.dumps(self._diagnostic_payload(purpose, exc), ensure_ascii=False, default=str),
+                json.dumps(
+                    self._diagnostic_payload(purpose, exc, output_model, request_stage),
+                    ensure_ascii=False,
+                    default=str,
+                ),
             )
 
             raise AIUnavailableError(
                 f"OpenAI request для {purpose} не выполнен: {type(exc).__name__}"
             ) from exc
 
-    def _diagnostic_payload(self, purpose: str, exc: Exception) -> dict[str, Any]:
+    def _diagnostic_payload(
+        self,
+        purpose: str,
+        exc: Exception,
+        output_model: type[BaseModel] | None = None,
+        request_stage: str | None = None,
+    ) -> dict[str, Any]:
         response = getattr(exc, "response", None)
         status = getattr(exc, "status_code", None)
         if status is None and response is not None:
@@ -112,14 +124,33 @@ class OpenAIProvider(BaseAIProvider):
                 body = response.text
             except Exception:  # pragma: no cover - defensive SDK compatibility
                 body = None
+        validation_errors = None
+        errors = getattr(exc, "errors", None)
+        if callable(errors):
+            try:
+                validation_errors = errors()
+            except Exception:  # pragma: no cover - defensive SDK compatibility
+                validation_errors = None
+        response_format = None
+        if output_model is not None:
+            response_format = {
+                "sdk_method": "responses.parse",
+                "sdk_argument": "text_format",
+                "pydantic_model": output_model.__name__,
+                "json_schema": output_model.model_json_schema(),
+            }
         return {
             "purpose": purpose,
             "api_key_configured": self.api_key_configured,
             "model": self.model,
             "endpoint": self.endpoint,
+            "request_stage": request_stage,
+            "response_format": response_format,
             "http_status": status,
             "error_type": type(exc).__name__,
             "error_message": str(exc),
+            "error_repr": repr(exc),
+            "validation_errors": validation_errors,
             "error_body": body,
         }
 
