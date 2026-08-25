@@ -127,6 +127,10 @@ const waitForPreview = async () => {
   while (Date.now() < deadline) {
     if (serverLaunchError) throw new Error(`Motion Canvas server launch failed: ${serverLaunchError.message}`);
     if (serverExitCode !== undefined) {
+      process.stderr.write(
+        `MOTION_CANVAS_SERVER_STDERR_FIRST_100_LINES ${JSON.stringify(serverStderr.split(/\r?\n/).slice(0, 100))}\n`,
+      );
+      process.stderr.write(`MOTION_CANVAS_SERVER_STDERR_FULL ${serverStderr}\n`);
       throw new Error(
         `MOTION_CANVAS_SERVER_BOOT_ERROR SERVER_EXIT_CODE=${serverExitCode}; ` +
         `command=${launch.command}; args=${JSON.stringify(launch.args)}; cwd=${viteCwd}; ` +
