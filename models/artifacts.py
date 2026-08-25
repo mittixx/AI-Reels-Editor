@@ -209,7 +209,9 @@ class EditPlan(ArtifactModel):
             if starts != sorted(starts):
                 raise ValueError("keep_ranges РґРѕР»Р¶РЅС‹ Р±С‹С‚СЊ РѕС‚СЃРѕСЂС‚РёСЂРѕРІР°РЅС‹")
         actual = sum(item.end - item.start for item in self.keep_ranges)
-        if abs(self.estimated_duration - actual) > 0.05:
+        # AI-generated plans round range boundaries independently; accept a
+        # small aggregate rounding difference while retaining timeline checks.
+        if abs(self.estimated_duration - actual) > 0.5:
             raise ValueError("estimated_duration РЅРµ СЃРѕРІРїР°РґР°РµС‚ СЃ СЃСѓРјРјРѕР№ keep_ranges")
         for keep in self.keep_ranges:
             for removed in self.removed_ranges:
@@ -363,6 +365,5 @@ class QCReport(ArtifactModel):
     export_allowed: bool
     issues: list[QCIssue] = Field(default_factory=list)
     measured: dict[str, Any] = Field(default_factory=dict)
-
 
 

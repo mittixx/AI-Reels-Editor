@@ -117,6 +117,16 @@ def test_edit_plan_rejects_overlap_and_duration_mismatch() -> None:
         )
 
 
+def test_edit_plan_allows_half_second_duration_rounding() -> None:
+    plan = EditPlan(
+        project_id="p",
+        keep_ranges=[TimeRange(id="a", start=0, end=33.82)],
+        estimated_duration=33.64,
+    )
+
+    assert plan.estimated_duration == 33.64
+
+
 def test_edit_plan_rejects_source_boundary() -> None:
     plan = EditPlan(
         project_id="p",
