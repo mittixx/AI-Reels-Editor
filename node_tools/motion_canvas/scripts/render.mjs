@@ -43,11 +43,18 @@ await cp(path.join(root, 'tsconfig.json'), path.join(runtimeRoot, 'tsconfig.json
 await writeFile(path.join(runtimeRoot, 'public', 'motion_input.json'), JSON.stringify(job, null, 2), 'utf8');
 const port = 9200 + Math.floor(Math.random() * 500);
 const launch = buildNpmServeLaunchSpec({runtimeRoot, port});
+const expectedUrl = `http://127.0.0.1:${port}`;
+const launchDebug = JSON.stringify({command: launch.command, args: launch.args, cwd: root});
+process.stderr.write(`MOTION_CANVAS_PREVIEW_DEBUG launch=${launchDebug}\n`);
+process.stderr.write(`MOTION_CANVAS_PREVIEW_DEBUG port=${port} expected_url=${expectedUrl}\n`);
 const server = spawn(launch.command, launch.args, {cwd: root, stdio: ['ignore', 'pipe', 'pipe'], shell: false});
 let serverStdout = '';
 let serverStderr = '';
 const started = new Promise((resolve, reject) => {
-  const timer = setTimeout(() => reject(new Error('Motion Canvas preview timeout')), 60000);
+  const timer = setTimeout(() => reject(new Error(
+    `Motion Canvas preview timeout; port=${port}; expected_url=${expectedUrl}; ` +
+    `launch=${launchDebug}; stdout=${serverStdout.slice(-1000)}; stderr=${serverStderr.slice(-1000)}`,
+  )), 60000);
   const onData = chunk => { const value = String(chunk); if (value.includes(`localhost:${port}`) || value.includes(`127.0.0.1:${port}`)) { clearTimeout(timer); resolve(); } };
   server.stdout.on('data', chunk => { serverStdout += String(chunk); onData(chunk); });
   server.stderr.on('data', chunk => { serverStderr += String(chunk); onData(chunk); });
