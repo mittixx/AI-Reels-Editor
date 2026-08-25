@@ -123,8 +123,11 @@ const waitForPreview = async () => {
     if (serverExitCode !== undefined) {
       throw new Error(
         `MOTION_CANVAS_SERVER_BOOT_ERROR exit_code=${serverExitCode}; ` +
-        `stdout=${serverStdout}; stderr_first_2000=${serverStderr.slice(0, 2000)}; ` +
-        `stderr_last_2000=${serverStderr.slice(-2000)}`,
+        `command=${launch.command}; args=${JSON.stringify(launch.args)}; cwd=${viteCwd}; ` +
+        `SERVER_STDERR_FIRST_100_LINES=${JSON.stringify(serverStderr.split(/\r?\n/).slice(0, 100))}; ` +
+        `SERVER_STDERR_LAST_LINES=${JSON.stringify(serverStderr.split(/\r?\n/).filter(Boolean))}; ` +
+        `SERVER_STDOUT_LAST_LINES=${JSON.stringify(serverStdout.split(/\r?\n/).filter(Boolean))}; ` +
+        `SERVER_STDERR_FULL=${serverStderr}; SERVER_STDOUT_FULL=${serverStdout}`,
       );
     }
     try {
