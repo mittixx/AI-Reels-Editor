@@ -5,6 +5,7 @@ import process from 'node:process';
 import {fileURLToPath} from 'node:url';
 import {chromium} from 'playwright';
 import {buildNpmServeLaunchSpec} from './process_launcher.mjs';
+import {probePreviewResources} from './preview_probes.mjs';
 import {readJobLayout} from './runtime_layout.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -61,6 +62,7 @@ let stdoutReceived = false;
 let stderrReceived = false;
 let serverLaunchError;
 let serverExitCode;
+let previewResourceProbes = [];
 server.stdout.on('data', chunk => {
   serverStdout += String(chunk);
   if (!stdoutReceived) {
@@ -77,6 +79,12 @@ server.stderr.on('data', chunk => {
 });
 server.once('error', error => { serverLaunchError = error; });
 server.once('exit', code => { serverExitCode = code; });
+
+const recordPreviewResourceProbes = async () => {
+  const probes = await probePreviewResources(expectedUrl);
+  process.stderr.write(`MOTION_CANVAS_PREVIEW_RESOURCE_HTTP_DEBUG ${JSON.stringify(probes)}\n`);
+  return probes;
+};
 
 const waitForPreview = async () => {
   const deadline = Date.now() + 60000;
@@ -99,6 +107,7 @@ const waitForPreview = async () => {
         process.stderr.write(
           `MOTION_CANVAS_PREVIEW_HTTP_DEBUG ${JSON.stringify({url: expectedUrl, status: response.status, response_text: body})}\n`,
         );
+        previewResourceProbes = await recordPreviewResourceProbes();
       }
       if (response.ok) {
         process.stderr.write(`MOTION_CANVAS_PREVIEW_DEBUG preview_ready=true status=${response.status}\n`);
@@ -115,6 +124,7 @@ const waitForPreview = async () => {
     `launch=${launchDebug}; stdout_received=${stdoutReceived}; stderr_received=${stderrReceived}; ` +
     `last_probe_error=${lastProbeError}; last_probe_status=${lastProbeStatus}; ` +
     `last_probe_response_text=${JSON.stringify(lastProbeBody)}; ` +
+    `resource_probes=${JSON.stringify(previewResourceProbes)}; ` +
     `stdout=${serverStdout.slice(-250)}; stderr=${serverStderr.slice(-250)}; ${jobLayoutDebug}`,
   );
 };
