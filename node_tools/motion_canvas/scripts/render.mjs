@@ -65,6 +65,19 @@ let stderrReceived = false;
 let serverLaunchError;
 let serverExitCode;
 let previewResourceProbes = [];
+const exists = async target => stat(target).then(() => true).catch(() => false);
+const readDebugText = async target => readFile(target, 'utf8').catch(error => `<unavailable: ${error.message}>`);
+const jobFailureDebug = async () => ({
+  job_root: runtimeRoot,
+  cwd: root,
+  files: (await readJobLayout(runtimeRoot)).files,
+  vite_config_ts: await readDebugText(path.join(runtimeRoot, 'vite.config.ts')),
+  package_json: await readDebugText(path.join(runtimeRoot, 'package.json')),
+  job_node_modules_vite: await exists(path.join(runtimeRoot, 'node_modules', 'vite')),
+  job_node_modules_esbuild: await exists(path.join(runtimeRoot, 'node_modules', 'esbuild')),
+  root_node_modules_vite: await exists(path.join(root, 'node_modules', 'vite')),
+  root_node_modules_esbuild: await exists(path.join(root, 'node_modules', 'esbuild')),
+});
 server.stdout.on('data', chunk => {
   serverStdout += String(chunk);
   if (!stdoutReceived) {
@@ -97,7 +110,11 @@ const waitForPreview = async () => {
   while (Date.now() < deadline) {
     if (serverLaunchError) throw new Error(`Motion Canvas server launch failed: ${serverLaunchError.message}`);
     if (serverExitCode !== undefined) {
-      throw new Error(`Motion Canvas server exited: ${serverExitCode}; stdout=${serverStdout.slice(-500)}; stderr=${serverStderr.slice(-500)}`);
+      throw new Error(
+        `MOTION_CANVAS_SERVER_BOOT_ERROR exit_code=${serverExitCode}; ` +
+        `stdout=${serverStdout}; stderr_first_2000=${serverStderr.slice(0, 2000)}; ` +
+        `stderr_last_2000=${serverStderr.slice(-2000)}`,
+      );
     }
     try {
       const response = await fetch(expectedUrl, {signal: AbortSignal.timeout(1000)});
@@ -135,6 +152,7 @@ const waitForPreview = async () => {
 };
 const started = waitForPreview();
 let browser;
+let failed = false;
 try {
   await started;
   process.stderr.write('MOTION_CANVAS_HTTP_PROBE_START\n');
@@ -200,8 +218,15 @@ try {
   await waitForStableFile(path.resolve(output));
   await decodeCheck(path.resolve(output));
   process.stdout.write(JSON.stringify({success: true, job_id: jobId, output: path.resolve(output), component: job.component}) + '\n');
+} catch (error) {
+  failed = true;
+  const diagnostic = await jobFailureDebug();
+  const debug = `MOTION_CANVAS_JOB_FAILURE_DEBUG ${JSON.stringify(diagnostic)}`;
+  process.stderr.write(`${debug}\n`);
+  throw new Error(`${error instanceof Error ? error.message : String(error)}; ${debug}`);
 } finally {
   if (browser) await browser.close();
   server.kill();
-  await rm(runtimeRoot, {recursive: true, force: true});
+  if (!failed) await rm(runtimeRoot, {recursive: true, force: true});
+  else process.stderr.write(`MOTION_CANVAS_JOB_PRESERVED ${runtimeRoot}\n`);
 }
