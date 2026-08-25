@@ -65,6 +65,7 @@ def test_windows_motion_launcher_uses_explicit_cmd_contract() -> None:
     assert payload["win"]["command"].endswith("cmd.exe")
     assert payload["win"]["args"][:3] == ["/d", "/s", "/c"]
     assert "npm.cmd" in payload["win"]["args"][3]
+    assert '"C:/jobs/job_1"' in payload["win"]["args"][3]
     assert payload["win"]["shell"] is False
     assert payload["linux"] == {"command": "npm.cmd", "args": ["run", "serve", "--", "/tmp/job_1", "--port", "9321", "--strictPort"], "shell": False}
 

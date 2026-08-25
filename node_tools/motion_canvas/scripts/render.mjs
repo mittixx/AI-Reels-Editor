@@ -46,21 +46,60 @@ const launch = buildNpmServeLaunchSpec({runtimeRoot, port});
 const expectedUrl = `http://127.0.0.1:${port}`;
 const launchDebug = JSON.stringify({command: launch.command, args: launch.args, cwd: root});
 process.stderr.write(`MOTION_CANVAS_PREVIEW_DEBUG launch=${launchDebug}\n`);
+process.stderr.write(`MOTION_CANVAS_PREVIEW_DEBUG spawn_command=${launch.command}\n`);
+process.stderr.write(`MOTION_CANVAS_PREVIEW_DEBUG spawn_args=${JSON.stringify(launch.args)}\n`);
 process.stderr.write(`MOTION_CANVAS_PREVIEW_DEBUG port=${port} expected_url=${expectedUrl}\n`);
 const server = spawn(launch.command, launch.args, {cwd: root, stdio: ['ignore', 'pipe', 'pipe'], shell: false});
 let serverStdout = '';
 let serverStderr = '';
-const started = new Promise((resolve, reject) => {
-  const timer = setTimeout(() => reject(new Error(
-    `Motion Canvas preview timeout; port=${port}; expected_url=${expectedUrl}; ` +
-    `launch=${launchDebug}; stdout=${serverStdout.slice(-1000)}; stderr=${serverStderr.slice(-1000)}`,
-  )), 60000);
-  const onData = chunk => { const value = String(chunk); if (value.includes(`localhost:${port}`) || value.includes(`127.0.0.1:${port}`)) { clearTimeout(timer); resolve(); } };
-  server.stdout.on('data', chunk => { serverStdout += String(chunk); onData(chunk); });
-  server.stderr.on('data', chunk => { serverStderr += String(chunk); onData(chunk); });
-  server.once('error', error => { clearTimeout(timer); reject(new Error(`Motion Canvas server launch failed: ${error.message}`)); });
-  server.once('exit', code => { clearTimeout(timer); reject(new Error(`Motion Canvas server exited: ${code}; stdout=${serverStdout.slice(-500)}; stderr=${serverStderr.slice(-500)}`)); });
+let stdoutReceived = false;
+let stderrReceived = false;
+let serverLaunchError;
+let serverExitCode;
+server.stdout.on('data', chunk => {
+  serverStdout += String(chunk);
+  if (!stdoutReceived) {
+    stdoutReceived = true;
+    process.stderr.write('MOTION_CANVAS_PREVIEW_DEBUG stdout_received=true\n');
+  }
 });
+server.stderr.on('data', chunk => {
+  serverStderr += String(chunk);
+  if (!stderrReceived) {
+    stderrReceived = true;
+    process.stderr.write('MOTION_CANVAS_PREVIEW_DEBUG stderr_received=true\n');
+  }
+});
+server.once('error', error => { serverLaunchError = error; });
+server.once('exit', code => { serverExitCode = code; });
+
+const waitForPreview = async () => {
+  const deadline = Date.now() + 60000;
+  let lastProbeError = '';
+  while (Date.now() < deadline) {
+    if (serverLaunchError) throw new Error(`Motion Canvas server launch failed: ${serverLaunchError.message}`);
+    if (serverExitCode !== undefined) {
+      throw new Error(`Motion Canvas server exited: ${serverExitCode}; stdout=${serverStdout.slice(-500)}; stderr=${serverStderr.slice(-500)}`);
+    }
+    try {
+      const response = await fetch(expectedUrl, {signal: AbortSignal.timeout(1000)});
+      if (response.ok) {
+        process.stderr.write(`MOTION_CANVAS_PREVIEW_DEBUG preview_ready=true status=${response.status}\n`);
+        return;
+      }
+      lastProbeError = `HTTP ${response.status}`;
+    } catch (error) {
+      lastProbeError = error instanceof Error ? error.message : String(error);
+    }
+    await new Promise(resolve => setTimeout(resolve, 250));
+  }
+  throw new Error(
+    `Motion Canvas preview timeout; port=${port}; expected_url=${expectedUrl}; ` +
+    `launch=${launchDebug}; stdout_received=${stdoutReceived}; stderr_received=${stderrReceived}; ` +
+    `last_probe_error=${lastProbeError}; stdout=${serverStdout.slice(-1000)}; stderr=${serverStderr.slice(-1000)}`,
+  );
+};
+const started = waitForPreview();
 let browser;
 try {
   await started;

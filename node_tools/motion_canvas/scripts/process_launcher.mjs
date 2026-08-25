@@ -2,6 +2,9 @@
 const quoteForCmd = value => `"${String(value).replace(/"/g, '""')}"`;
 
 export const buildNpmServeLaunchSpec = ({platform = process.platform, comSpec, runtimeRoot, port}) => {
+  // Vite's CLI contract is `vite [root]`: runtimeRoot is the project root for
+  // this isolated render job, not an entry-file argument. Its public/ folder
+  // supplies the job-specific motion_input.json requested by the scene.
   const npmArgs = ['run', 'serve', '--', runtimeRoot, '--port', String(port), '--strictPort'];
   if (platform === 'win32') {
     // npm.cmd is a batch file. Node cannot execute it directly with shell:false;
