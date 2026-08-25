@@ -65,22 +65,23 @@ def test_openai_diagnostic_records_full_validation_errors() -> None:
     assert "keep_ranges" in payload["error_message"]
 
 
-def test_edit_plan_normalizer_allows_adjacent_keep_and_removed_ranges() -> None:
+def test_edit_plan_generate_normalizes_raw_json_before_validation() -> None:
     payload = {
         "project_id": "project",
         "keep_ranges": [
-            {"id": "keep", "start": 40.06, "end": 42.28},
+            {"id": "keep", "start": 26.3, "end": 34.3},
         ],
         "removed_ranges": [
-            {"id": "removed", "start": 42.28, "end": 42.46, "action": "cut"},
+            {"id": "removed", "start": 28.54, "end": 28.66, "action": "cut"},
         ],
-        "estimated_duration": 2.22,
+        "estimated_duration": 8.0,
     }
 
     class FakeResponses:
         @staticmethod
-        def parse(**_: object) -> SimpleNamespace:
-            return SimpleNamespace(output_parsed=payload)
+        def create(**kwargs: object) -> SimpleNamespace:
+            assert kwargs["text"] == {"format": OpenAIProvider._raw_json_format(EditPlan)}
+            return SimpleNamespace(output_text=json.dumps(payload))
 
     provider = object.__new__(OpenAIProvider)
     provider.client = SimpleNamespace(responses=FakeResponses())
@@ -88,10 +89,15 @@ def test_edit_plan_normalizer_allows_adjacent_keep_and_removed_ranges() -> None:
 
     plan = provider.generate("edit_plan", "prompt", {}, EditPlan)
 
-    assert [(item.start, item.end) for item in plan.removed_ranges] == [(42.28, 42.46)]
+    assert [(item.start, item.end) for item in plan.keep_ranges] == [
+        (26.3, 28.54),
+        (28.66, 34.3),
+    ]
+    assert [(item.start, item.end) for item in plan.removed_ranges] == [(28.54, 28.66)]
+    assert plan.estimated_duration == pytest.approx(7.88)
 
 
-def test_edit_plan_normalizer_trims_real_overlap_and_drops_matching_range() -> None:
+def test_edit_plan_normalizer_keeps_adjacent_ranges_and_drops_matching_removed() -> None:
     payload = {
         "project_id": "project",
         "keep_ranges": [
@@ -106,6 +112,10 @@ def test_edit_plan_normalizer_trims_real_overlap_and_drops_matching_range() -> N
 
     plan = EditPlan.model_validate(OpenAIProvider._normalize_edit_plan_ranges(payload))
 
-    assert [(item.id, item.start, item.end) for item in plan.removed_ranges] == [
-        ("overlap", 42.28, 42.46),
+    assert [(item.id, item.start, item.end) for item in plan.keep_ranges] == [
+        ("keep", 40.06, 42.0),
     ]
+    assert [(item.id, item.start, item.end) for item in plan.removed_ranges] == [
+        ("overlap", 42.0, 42.46),
+    ]
+    assert plan.estimated_duration == pytest.approx(1.94)
