@@ -3,6 +3,7 @@ import {mkdtemp, mkdir, rm, symlink, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import {fileURLToPath} from 'node:url';
 import {readJobLayout} from './runtime_layout.mjs';
 
 test('reports Motion Canvas job files from the actual job root', async () => {
@@ -47,4 +48,11 @@ test('Windows-compatible job link exposes root Vite dependencies without copying
     await rm(root, {recursive: true, force: true});
     await rm(jobRoot, {recursive: true, force: true});
   }
+});
+
+test('Motion Canvas job package declares Vite and Motion Canvas dependencies', async () => {
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const packageJson = JSON.parse(await (await import('node:fs/promises')).readFile(path.join(root, 'package.json'), 'utf8'));
+  assert.equal(packageJson.dependencies.vite, '5.4.20');
+  assert.equal(packageJson.dependencies['@motion-canvas/vite-plugin'], '3.17.2');
 });

@@ -41,6 +41,7 @@ await mkdir(runtimeRoot, {recursive: true});
 await cp(path.join(root, 'src'), path.join(runtimeRoot, 'src'), {recursive: true});
 await cp(path.join(root, 'public'), path.join(runtimeRoot, 'public'), {recursive: true});
 await cp(path.join(root, 'index.html'), path.join(runtimeRoot, 'index.html'));
+await cp(path.join(root, 'package.json'), path.join(runtimeRoot, 'package.json'));
 await cp(path.join(root, 'vite.config.ts'), path.join(runtimeRoot, 'vite.config.ts'));
 await cp(path.join(root, 'tsconfig.json'), path.join(runtimeRoot, 'tsconfig.json'));
 await stat(path.join(root, 'node_modules'));
