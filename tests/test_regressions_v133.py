@@ -58,16 +58,16 @@ def test_windows_motion_launcher_uses_explicit_cmd_contract() -> None:
         pytest.skip("Node unavailable")
     script = (
         "import {buildNpmServeLaunchSpec} from './node_tools/motion_canvas/scripts/process_launcher.mjs';"
-        "console.log(JSON.stringify({win:buildNpmServeLaunchSpec({platform:'win32',comSpec:'C:/Windows/System32/cmd.exe',runtimeRoot:'C:/jobs/job_1',port:9321}),linux:buildNpmServeLaunchSpec({platform:'linux',runtimeRoot:'/tmp/job_1',port:9321})}));"
+        "console.log(JSON.stringify({win:buildNpmServeLaunchSpec({platform:'win32',comSpec:'C:/Windows/System32/cmd.exe',root:'C:/motion',runtimeRoot:'C:/jobs/job_1',port:9321}),linux:buildNpmServeLaunchSpec({platform:'linux',root:'/motion',runtimeRoot:'/tmp/job_1',port:9321})}));"
     )
     result = subprocess.run([node, "--input-type=module", "-e", script], capture_output=True, text=True, check=True)
     payload = json.loads(result.stdout)
     assert payload["win"]["command"].endswith("cmd.exe")
     assert payload["win"]["args"][:3] == ["/d", "/s", "/c"]
-    assert "npm.cmd" in payload["win"]["args"][3]
-    assert '"C:/jobs/job_1"' in payload["win"]["args"][3]
+    assert 'call "C:\\motion\\node_modules\\.bin\\vite.cmd"' in payload["win"]["args"][3]
+    assert '"C:\\jobs\\job_1\\vite.config.ts"' in payload["win"]["args"][3]
     assert payload["win"]["shell"] is False
-    assert payload["linux"] == {"command": "npm.cmd", "args": ["run", "serve", "--", "/tmp/job_1", "--port", "9321", "--strictPort"], "shell": False}
+    assert payload["linux"] == {"command": "/motion/node_modules/.bin/vite", "args": ["--host", "127.0.0.1", "--config", "/tmp/job_1/vite.config.ts", "--port", "9321", "--strictPort"], "shell": False}
 
 
 def test_corrupt_broll_with_matching_manifest_sha_is_rejected_before_render(tmp_path: Path) -> None:
