@@ -5,6 +5,7 @@ import process from 'node:process';
 import {fileURLToPath} from 'node:url';
 import {chromium} from 'playwright';
 import {buildNpmServeLaunchSpec} from './process_launcher.mjs';
+import {readJobLayout} from './runtime_layout.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
@@ -42,26 +43,7 @@ await cp(path.join(root, 'index.html'), path.join(runtimeRoot, 'index.html'));
 await cp(path.join(root, 'vite.config.ts'), path.join(runtimeRoot, 'vite.config.ts'));
 await cp(path.join(root, 'tsconfig.json'), path.join(runtimeRoot, 'tsconfig.json'));
 await writeFile(path.join(runtimeRoot, 'public', 'motion_input.json'), JSON.stringify(job, null, 2), 'utf8');
-const listRuntimeFiles = async directory => {
-  const entries = await readdir(directory, {withFileTypes: true});
-  const files = [];
-  for (const entry of entries) {
-    const target = path.join(directory, entry.name);
-    if (entry.isDirectory()) files.push(...await listRuntimeFiles(target));
-    else files.push(path.relative(runtimeRoot, target));
-  }
-  return files.sort();
-};
-const runtimeFiles = await listRuntimeFiles(runtimeRoot);
-const jobLayout = {
-  job_root: runtimeRoot,
-  files: runtimeFiles,
-  has_index_html: runtimeFiles.includes('index.html'),
-  has_main_ts: runtimeFiles.includes('src/main.ts'),
-  has_project_ts: runtimeFiles.includes('src/project.ts'),
-  has_motion_input: runtimeFiles.includes('public/motion_input.json'),
-  vite_root: runtimeRoot,
-};
+const jobLayout = await readJobLayout(runtimeRoot);
 const jobLayoutDebug = `MOTION_CANVAS_JOB_LAYOUT_DEBUG ${JSON.stringify(jobLayout)}`;
 process.stderr.write(`${jobLayoutDebug}\n`);
 const port = 9200 + Math.floor(Math.random() * 500);
