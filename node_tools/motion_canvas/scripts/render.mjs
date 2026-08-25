@@ -53,15 +53,16 @@ const listRuntimeFiles = async directory => {
   return files.sort();
 };
 const runtimeFiles = await listRuntimeFiles(runtimeRoot);
-const runtimeLayout = {
-  runtime_root: runtimeRoot,
+const jobLayout = {
+  job_root: runtimeRoot,
   files: runtimeFiles,
   has_index_html: runtimeFiles.includes('index.html'),
-  has_vite_config: runtimeFiles.includes('vite.config.ts'),
-  has_src_main_ts: runtimeFiles.includes('src/main.ts'),
-  has_motion_canvas_project: runtimeFiles.includes('src/project.ts'),
+  has_main_ts: runtimeFiles.includes('src/main.ts'),
+  has_project_ts: runtimeFiles.includes('src/project.ts'),
+  has_motion_input: runtimeFiles.includes('public/motion_input.json'),
+  vite_root: runtimeRoot,
 };
-process.stderr.write(`MOTION_CANVAS_RUNTIME_ROOT_DEBUG ${JSON.stringify(runtimeLayout)}\n`);
+process.stderr.write(`MOTION_CANVAS_JOB_LAYOUT_DEBUG ${JSON.stringify(jobLayout)}\n`);
 const port = 9200 + Math.floor(Math.random() * 500);
 const launch = buildNpmServeLaunchSpec({runtimeRoot, port});
 const expectedUrl = `http://127.0.0.1:${port}`;
