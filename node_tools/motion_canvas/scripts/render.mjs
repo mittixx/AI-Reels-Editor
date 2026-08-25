@@ -41,6 +41,26 @@ await cp(path.join(root, 'public'), path.join(runtimeRoot, 'public'), {recursive
 await cp(path.join(root, 'vite.config.ts'), path.join(runtimeRoot, 'vite.config.ts'));
 await cp(path.join(root, 'tsconfig.json'), path.join(runtimeRoot, 'tsconfig.json'));
 await writeFile(path.join(runtimeRoot, 'public', 'motion_input.json'), JSON.stringify(job, null, 2), 'utf8');
+const listRuntimeFiles = async directory => {
+  const entries = await readdir(directory, {withFileTypes: true});
+  const files = [];
+  for (const entry of entries) {
+    const target = path.join(directory, entry.name);
+    if (entry.isDirectory()) files.push(...await listRuntimeFiles(target));
+    else files.push(path.relative(runtimeRoot, target));
+  }
+  return files.sort();
+};
+const runtimeFiles = await listRuntimeFiles(runtimeRoot);
+const runtimeLayout = {
+  runtime_root: runtimeRoot,
+  files: runtimeFiles,
+  has_index_html: runtimeFiles.includes('index.html'),
+  has_vite_config: runtimeFiles.includes('vite.config.ts'),
+  has_src_main_ts: runtimeFiles.includes('src/main.ts'),
+  has_motion_canvas_project: runtimeFiles.includes('src/project.ts'),
+};
+process.stderr.write(`MOTION_CANVAS_RUNTIME_ROOT_DEBUG ${JSON.stringify(runtimeLayout)}\n`);
 const port = 9200 + Math.floor(Math.random() * 500);
 const launch = buildNpmServeLaunchSpec({runtimeRoot, port});
 const expectedUrl = `http://127.0.0.1:${port}`;
