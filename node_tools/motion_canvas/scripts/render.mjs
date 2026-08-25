@@ -55,7 +55,9 @@ process.stderr.write(`MOTION_CANVAS_PREVIEW_DEBUG launch=${launchDebug}\n`);
 process.stderr.write(`MOTION_CANVAS_PREVIEW_DEBUG spawn_command=${launch.command}\n`);
 process.stderr.write(`MOTION_CANVAS_PREVIEW_DEBUG spawn_args=${JSON.stringify(launch.args)}\n`);
 process.stderr.write(`MOTION_CANVAS_PREVIEW_DEBUG port=${port} expected_url=${expectedUrl}\n`);
+process.stderr.write(`PREVIEW_URL_DEBUG ${JSON.stringify({expected_url: expectedUrl, port})}\n`);
 const server = spawn(launch.command, launch.args, {cwd: root, stdio: ['ignore', 'pipe', 'pipe'], shell: false});
+process.stderr.write(`SERVER_PROCESS_PID ${server.pid ?? 'unavailable'}\n`);
 let serverStdout = '';
 let serverStderr = '';
 let stdoutReceived = false;
@@ -124,7 +126,9 @@ const waitForPreview = async () => {
     `last_probe_error=${lastProbeError}; last_probe_status=${lastProbeStatus}; ` +
     `last_probe_response_text=${JSON.stringify(lastProbeBody)}; ` +
     `resource_probes=${JSON.stringify(previewResourceProbes)}; ` +
-    `stdout=${serverStdout.slice(-250)}; stderr=${serverStderr.slice(-250)}; ${jobLayoutDebug}`,
+    `SERVER_STDOUT_LAST_LINES=${JSON.stringify(serverStdout.split(/\r?\n/).filter(Boolean).slice(-20))}; ` +
+    `SERVER_STDERR_LAST_LINES=${JSON.stringify(serverStderr.split(/\r?\n/).filter(Boolean).slice(-20))}; ` +
+    `PREVIEW_URL_DEBUG=${expectedUrl}; SERVER_PROCESS_PID=${server.pid ?? 'unavailable'}; ${jobLayoutDebug}`,
   );
 };
 const started = waitForPreview();
