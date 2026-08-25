@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {mkdtemp, mkdir, rm, writeFile} from 'node:fs/promises';
+import {mkdtemp, mkdir, rm, symlink, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -29,6 +29,22 @@ test('reports Motion Canvas job files from the actual job root', async () => {
       'src/project.ts',
     ]);
   } finally {
+    await rm(jobRoot, {recursive: true, force: true});
+  }
+});
+
+test('Windows-compatible job link exposes root Vite dependencies without copying', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'motion-canvas-root-'));
+  const jobRoot = await mkdtemp(path.join(tmpdir(), 'motion-canvas-job-'));
+  try {
+    await mkdir(path.join(root, 'node_modules', 'vite'), {recursive: true});
+    await mkdir(path.join(root, 'node_modules', 'esbuild'), {recursive: true});
+    await symlink(path.join(root, 'node_modules'), path.join(jobRoot, 'node_modules'), process.platform === 'win32' ? 'junction' : 'dir');
+    const layout = await readJobLayout(jobRoot);
+    assert.equal(await import('node:fs/promises').then(({stat}) => stat(path.join(jobRoot, 'node_modules', 'vite')).then(() => true)), true);
+    assert.equal(layout.job_root, jobRoot);
+  } finally {
+    await rm(root, {recursive: true, force: true});
     await rm(jobRoot, {recursive: true, force: true});
   }
 });

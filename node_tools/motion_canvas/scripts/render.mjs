@@ -1,5 +1,5 @@
 import {spawn} from 'node:child_process';
-import {cp, mkdir, readFile, readdir, rm, stat, writeFile} from 'node:fs/promises';
+import {cp, mkdir, readFile, readdir, rm, stat, symlink, writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import {fileURLToPath} from 'node:url';
@@ -43,6 +43,12 @@ await cp(path.join(root, 'public'), path.join(runtimeRoot, 'public'), {recursive
 await cp(path.join(root, 'index.html'), path.join(runtimeRoot, 'index.html'));
 await cp(path.join(root, 'vite.config.ts'), path.join(runtimeRoot, 'vite.config.ts'));
 await cp(path.join(root, 'tsconfig.json'), path.join(runtimeRoot, 'tsconfig.json'));
+await stat(path.join(root, 'node_modules'));
+await symlink(
+  path.join(root, 'node_modules'),
+  path.join(runtimeRoot, 'node_modules'),
+  process.platform === 'win32' ? 'junction' : 'dir',
+);
 await writeFile(path.join(runtimeRoot, 'public', 'motion_input.json'), JSON.stringify(job, null, 2), 'utf8');
 const jobLayout = await readJobLayout(runtimeRoot);
 const jobLayoutDebug = `MOTION_CANVAS_JOB_LAYOUT_DEBUG ${JSON.stringify(jobLayout)}`;
