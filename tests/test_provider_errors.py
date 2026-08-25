@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 
 from integrations.ai_client import OpenAIProvider, build_ai_provider
@@ -61,3 +63,49 @@ def test_openai_diagnostic_records_full_validation_errors() -> None:
     assert payload["error_type"] == "ValidationError"
     assert payload["validation_errors"]
     assert "keep_ranges" in payload["error_message"]
+
+
+def test_edit_plan_normalizer_allows_adjacent_keep_and_removed_ranges() -> None:
+    payload = {
+        "project_id": "project",
+        "keep_ranges": [
+            {"id": "keep", "start": 40.06, "end": 42.28},
+        ],
+        "removed_ranges": [
+            {"id": "removed", "start": 42.28, "end": 42.46, "action": "cut"},
+        ],
+        "estimated_duration": 2.22,
+    }
+
+    class FakeResponses:
+        @staticmethod
+        def parse(**_: object) -> SimpleNamespace:
+            return SimpleNamespace(output_parsed=payload)
+
+    provider = object.__new__(OpenAIProvider)
+    provider.client = SimpleNamespace(responses=FakeResponses())
+    provider.model = "test-model"
+
+    plan = provider.generate("edit_plan", "prompt", {}, EditPlan)
+
+    assert [(item.start, item.end) for item in plan.removed_ranges] == [(42.28, 42.46)]
+
+
+def test_edit_plan_normalizer_trims_real_overlap_and_drops_matching_range() -> None:
+    payload = {
+        "project_id": "project",
+        "keep_ranges": [
+            {"id": "keep", "start": 40.06, "end": 42.28},
+        ],
+        "removed_ranges": [
+            {"id": "overlap", "start": 42.0, "end": 42.46, "action": "cut"},
+            {"id": "duplicate", "start": 40.06, "end": 42.28, "action": "cut"},
+        ],
+        "estimated_duration": 2.22,
+    }
+
+    plan = EditPlan.model_validate(OpenAIProvider._normalize_edit_plan_ranges(payload))
+
+    assert [(item.id, item.start, item.end) for item in plan.removed_ranges] == [
+        ("overlap", 42.28, 42.46),
+    ]

@@ -14,6 +14,7 @@ from models.artifacts import EditPlan, SpeechAnalysis, VisualPlan
 
 T = TypeVar("T", bound=BaseModel)
 LOGGER = logging.getLogger(__name__)
+EDIT_RANGE_TOLERANCE = 0.001
 
 
 class BaseAIProvider(ABC):
@@ -87,6 +88,10 @@ class OpenAIProvider(BaseAIProvider):
                     "AI не вернул структурированный результат"
                 )
 
+            if output_model is EditPlan:
+                request_stage = "edit_plan.normalize_ranges"
+                parsed = self._normalize_edit_plan_ranges(parsed)
+
             request_stage = "output_model.model_validate"
             return output_model.model_validate(parsed)
 
@@ -106,6 +111,102 @@ class OpenAIProvider(BaseAIProvider):
             raise AIUnavailableError(
                 f"OpenAI request для {purpose} не выполнен: {type(exc).__name__}"
             ) from exc
+
+    @staticmethod
+    def _normalize_edit_plan_ranges(payload: Any) -> Any:
+        """Remove keep/removed overlaps before EditPlan performs timeline validation."""
+        if isinstance(payload, BaseModel):
+            payload = payload.model_dump(mode="json")
+        if not isinstance(payload, dict):
+            return payload
+
+        normalized = dict(payload)
+        keep_ranges = normalized.get("keep_ranges")
+        removed_ranges = normalized.get("removed_ranges")
+        if not isinstance(keep_ranges, list) or not isinstance(removed_ranges, list):
+            return normalized
+
+        keep_intervals = [
+            interval
+            for item in keep_ranges
+            if (interval := OpenAIProvider._range_interval(item)) is not None
+        ]
+        if not keep_intervals:
+            return normalized
+
+        normalized_removed: list[Any] = []
+        for removed in removed_ranges:
+            removed_data = OpenAIProvider._range_mapping(removed)
+            interval = OpenAIProvider._range_interval(removed_data)
+            if removed_data is None or interval is None:
+                normalized_removed.append(removed)
+                continue
+
+            fragments = [interval]
+            for keep_start, keep_end in keep_intervals:
+                fragments = OpenAIProvider._subtract_keep_interval(
+                    fragments,
+                    keep_start,
+                    keep_end,
+                )
+                if not fragments:
+                    break
+
+            for index, (start, end) in enumerate(fragments, start=1):
+                fragment = dict(removed_data)
+                fragment["start"] = start
+                fragment["end"] = end
+                if len(fragments) > 1:
+                    fragment["id"] = f"{removed_data.get('id', 'removed')}_{index}"
+                normalized_removed.append(fragment)
+
+        normalized["removed_ranges"] = normalized_removed
+        return normalized
+
+    @staticmethod
+    def _range_mapping(value: Any) -> dict[str, Any] | None:
+        if isinstance(value, BaseModel):
+            value = value.model_dump(mode="json")
+        return dict(value) if isinstance(value, dict) else None
+
+    @staticmethod
+    def _range_interval(value: Any) -> tuple[float, float] | None:
+        data = OpenAIProvider._range_mapping(value)
+        if data is None:
+            return None
+        try:
+            start = float(data["start"])
+            end = float(data["end"])
+        except (KeyError, TypeError, ValueError):
+            return None
+        return (start, end) if end > start else None
+
+    @staticmethod
+    def _subtract_keep_interval(
+        fragments: list[tuple[float, float]],
+        keep_start: float,
+        keep_end: float,
+    ) -> list[tuple[float, float]]:
+        result: list[tuple[float, float]] = []
+        for start, end in fragments:
+            # Snap merely adjacent boundaries. They are valid and must not be
+            # mistaken for an overlap by later floating-point comparisons.
+            if abs(end - keep_start) <= EDIT_RANGE_TOLERANCE:
+                end = keep_start
+            if abs(start - keep_end) <= EDIT_RANGE_TOLERANCE:
+                start = keep_end
+
+            if end <= keep_start + EDIT_RANGE_TOLERANCE or start >= keep_end - EDIT_RANGE_TOLERANCE:
+                result.append((start, end))
+                continue
+
+            # A real overlap is removed from the cut range. This drops a
+            # completely matching interval and splits a range spanning keep.
+            if start < keep_start - EDIT_RANGE_TOLERANCE:
+                result.append((start, keep_start))
+            if end > keep_end + EDIT_RANGE_TOLERANCE:
+                result.append((keep_end, end))
+        return result
 
     def _diagnostic_payload(
         self,
