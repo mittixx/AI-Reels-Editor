@@ -4,7 +4,6 @@ import path from 'node:path';
 import process from 'node:process';
 import {fileURLToPath} from 'node:url';
 import {chromium} from 'playwright';
-import {buildNpmServeLaunchSpec} from './process_launcher.mjs';
 import {probePreviewResources} from './preview_probes.mjs';
 import {readJobLayout} from './runtime_layout.mjs';
 
@@ -55,7 +54,11 @@ const jobLayout = await readJobLayout(runtimeRoot);
 const jobLayoutDebug = `MOTION_CANVAS_JOB_LAYOUT_DEBUG ${JSON.stringify(jobLayout)}`;
 process.stderr.write(`${jobLayoutDebug}\n`);
 const port = 9200 + Math.floor(Math.random() * 500);
-const launch = buildNpmServeLaunchSpec({runtimeRoot, root, port});
+const viteCommand = path.join(root, 'node_modules', '.bin', process.platform === 'win32' ? 'vite.cmd' : 'vite');
+const viteArgs = ['--host', '127.0.0.1', '--config', path.join(runtimeRoot, 'vite.config.ts'), '--port', String(port), '--strictPort'];
+const launch = process.platform === 'win32'
+  ? {command: process.env.ComSpec || 'cmd.exe', args: ['/d', '/s', '/c', `call "${viteCommand}" ${viteArgs.map(arg => `"${arg}"`).join(' ')}`]}
+  : {command: viteCommand, args: viteArgs};
 const expectedUrl = `http://127.0.0.1:${port}`;
 const launchDebug = JSON.stringify({command: launch.command, args: launch.args, cwd: root});
 process.stderr.write(`MOTION_CANVAS_PREVIEW_DEBUG launch=${launchDebug}\n`);
