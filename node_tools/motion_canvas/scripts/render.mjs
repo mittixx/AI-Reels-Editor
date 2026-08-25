@@ -107,7 +107,6 @@ const waitForPreview = async () => {
         process.stderr.write(
           `MOTION_CANVAS_PREVIEW_HTTP_DEBUG ${JSON.stringify({url: expectedUrl, status: response.status, response_text: body})}\n`,
         );
-        previewResourceProbes = await recordPreviewResourceProbes();
       }
       if (response.ok) {
         process.stderr.write(`MOTION_CANVAS_PREVIEW_DEBUG preview_ready=true status=${response.status}\n`);
@@ -132,6 +131,9 @@ const started = waitForPreview();
 let browser;
 try {
   await started;
+  process.stderr.write('MOTION_CANVAS_HTTP_PROBE_START\n');
+  previewResourceProbes = await recordPreviewResourceProbes();
+  process.stderr.write('MOTION_CANVAS_HTTP_PROBE_DONE\n');
   browser = await chromium.launch({headless: true});
   const page = await browser.newPage({viewport: {width: 1440, height: 1000}});
   await page.goto(`http://127.0.0.1:${port}`, {waitUntil: 'networkidle', timeout: 90000});
