@@ -122,10 +122,10 @@ const waitForPreview = async () => {
     if (serverLaunchError) throw new Error(`Motion Canvas server launch failed: ${serverLaunchError.message}`);
     if (serverExitCode !== undefined) {
       throw new Error(
-        `MOTION_CANVAS_SERVER_BOOT_ERROR exit_code=${serverExitCode}; ` +
+        `MOTION_CANVAS_SERVER_BOOT_ERROR SERVER_EXIT_CODE=${serverExitCode}; ` +
         `command=${launch.command}; args=${JSON.stringify(launch.args)}; cwd=${viteCwd}; ` +
         `SERVER_STDERR_FIRST_100_LINES=${JSON.stringify(serverStderr.split(/\r?\n/).slice(0, 100))}; ` +
-        `SERVER_STDERR_LAST_LINES=${JSON.stringify(serverStderr.split(/\r?\n/).filter(Boolean))}; ` +
+        `SERVER_STDERR_LAST_200_LINES=${JSON.stringify(serverStderr.split(/\r?\n/).filter(Boolean).slice(-200))}; ` +
         `SERVER_STDOUT_LAST_LINES=${JSON.stringify(serverStdout.split(/\r?\n/).filter(Boolean))}; ` +
         `SERVER_STDERR_FULL=${serverStderr}; SERVER_STDOUT_FULL=${serverStdout}`,
       );
@@ -237,7 +237,7 @@ try {
   const diagnostic = await jobFailureDebug();
   const debug = `MOTION_CANVAS_JOB_FAILURE_DEBUG ${JSON.stringify(diagnostic)}`;
   process.stderr.write(`${debug}\n`);
-  throw new Error(`${error instanceof Error ? error.message : String(error)}; ${debug}`);
+  throw new Error(`${debug}; ORIGINAL_SERVER_ERROR=${error instanceof Error ? error.message : String(error)}`);
 } finally {
   if (browser) await browser.close();
   server.kill();
