@@ -1,4 +1,4 @@
-const routes = ['/', '/src/main.ts', '/src/project.ts', '/public/motion_input.json'];
+const routes = ['/', '/src/main.ts', '/src/project.ts', '/motion_input.json'];
 
 /** Fetch Vite's document and Motion Canvas entry modules for diagnostics. */
 export const probePreviewResources = async (baseUrl, fetchImpl = fetch) => Promise.all(
