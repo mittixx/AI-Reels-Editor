@@ -16,7 +16,12 @@ try {
   if (!address || typeof address === 'string') {
     throw new Error('Motion Canvas preview server did not bind a TCP port');
   }
-  process.stdout.write(`Motion Canvas preview check passed on 127.0.0.1:${address.port}\n`);
+  const url = `http://127.0.0.1:${address.port}/`;
+  const response = await fetch(url, {signal: AbortSignal.timeout(5000)});
+  if (!response.ok) {
+    throw new Error(`Motion Canvas preview root returned HTTP ${response.status}`);
+  }
+  process.stdout.write(`Motion Canvas preview check passed on ${url} (HTTP ${response.status})\n`);
 } finally {
   await server.close();
 }
