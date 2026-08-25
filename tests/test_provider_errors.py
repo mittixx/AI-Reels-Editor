@@ -119,3 +119,17 @@ def test_edit_plan_normalizer_keeps_adjacent_ranges_and_drops_matching_removed()
         ("overlap", 42.0, 42.46),
     ]
     assert plan.estimated_duration == pytest.approx(1.94)
+
+
+def test_edit_plan_normalizer_drops_zero_length_removed_range() -> None:
+    payload = {
+        "project_id": "project",
+        "keep_ranges": [{"id": "keep", "start": 40, "end": 50}],
+        "removed_ranges": [{"id": "gap_0008", "start": 48.14, "end": 48.14, "action": "cut"}],
+        "estimated_duration": 10,
+    }
+
+    plan = EditPlan.model_validate(OpenAIProvider._normalize_edit_plan_ranges(payload))
+
+    assert plan.removed_ranges == []
+    assert plan.estimated_duration == 10

@@ -163,7 +163,10 @@ class OpenAIProvider(BaseAIProvider):
             return normalized
 
         valid_keep_data = [item for item in keep_data if item is not None]
-        valid_removed_data = [item for item in removed_data if item is not None]
+        valid_removed_data = [
+            item for item in removed_data
+            if item is not None and not OpenAIProvider._is_empty_removed_range(item)
+        ]
         keep_intervals = [OpenAIProvider._range_interval(item) for item in valid_keep_data]
         removed_intervals = [OpenAIProvider._range_interval(item) for item in valid_removed_data]
         if any(item is None for item in [*keep_intervals, *removed_intervals]):
@@ -227,6 +230,13 @@ class OpenAIProvider(BaseAIProvider):
         except (KeyError, TypeError, ValueError):
             return None
         return (start, end) if end > start else None
+
+    @staticmethod
+    def _is_empty_removed_range(value: dict[str, Any]) -> bool:
+        try:
+            return float(value["end"]) <= float(value["start"])
+        except (KeyError, TypeError, ValueError):
+            return False
 
     @staticmethod
     def _same_interval(
