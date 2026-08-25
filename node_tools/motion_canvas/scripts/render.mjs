@@ -106,6 +106,8 @@ const waitForPreview = async () => {
       lastProbeBody = body;
       if (!probeReported) {
         probeReported = true;
+        previewResourceProbes = await recordPreviewResourceProbes();
+        process.stderr.write(`MOTION_CANVAS_RESOURCE_CHECK ${JSON.stringify(previewResourceProbes)}\n`);
         process.stderr.write(
           `MOTION_CANVAS_PREVIEW_HTTP_DEBUG ${JSON.stringify({url: expectedUrl, status: response.status, response_text: body})}\n`,
         );
@@ -125,7 +127,7 @@ const waitForPreview = async () => {
     `launch=${launchDebug}; stdout_received=${stdoutReceived}; stderr_received=${stderrReceived}; ` +
     `last_probe_error=${lastProbeError}; last_probe_status=${lastProbeStatus}; ` +
     `last_probe_response_text=${JSON.stringify(lastProbeBody)}; ` +
-    `resource_probes=${JSON.stringify(previewResourceProbes)}; ` +
+    `MOTION_CANVAS_RESOURCE_CHECK=${JSON.stringify(previewResourceProbes)}; ` +
     `SERVER_STDOUT_LAST_LINES=${JSON.stringify(serverStdout.split(/\r?\n/).filter(Boolean).slice(-20))}; ` +
     `SERVER_STDERR_LAST_LINES=${JSON.stringify(serverStderr.split(/\r?\n/).filter(Boolean).slice(-20))}; ` +
     `PREVIEW_URL_DEBUG=${expectedUrl}; SERVER_PROCESS_PID=${server.pid ?? 'unavailable'}; ${jobLayoutDebug}`,

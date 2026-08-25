@@ -1,4 +1,4 @@
-const routes = ['/', '/src/main.ts', '/src/project.ts'];
+const routes = ['/', '/src/main.ts', '/src/project.ts', '/public/motion_input.json'];
 
 /** Fetch Vite's document and Motion Canvas entry modules for diagnostics. */
 export const probePreviewResources = async (baseUrl, fetchImpl = fetch) => Promise.all(
@@ -7,13 +7,14 @@ export const probePreviewResources = async (baseUrl, fetchImpl = fetch) => Promi
     try {
       const response = await fetchImpl(url, {signal: AbortSignal.timeout(1000)});
       return {
-        path: route,
+        url,
         status: response.status,
-        response_text: (await response.text()).slice(0, 500),
+        content_type: response.headers.get('content-type'),
+        body: (await response.text()).slice(0, 200),
       };
     } catch (error) {
       return {
-        path: route,
+        url,
         error: error instanceof Error ? error.message : String(error),
       };
     }
